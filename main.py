@@ -45,6 +45,8 @@ def main():
                 time.sleep_ms(MAIN_LOOP_MS)
             except KeyboardInterrupt:
                 print("\nShutting down...")
+                import led
+                led.turn_off()
                 bot.stop()
                 server.stop()
                 break

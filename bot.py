@@ -4,6 +4,7 @@ import time
 from servo import HeadServo
 from display import Display
 from audio import Microphone, Speaker
+import led
 
 
 class SpeakerBot:
@@ -39,6 +40,7 @@ class SpeakerBot:
         self.head.center()
         self.display.show_idle()
         self.display.draw()
+        led.status_idle()
 
     def stop(self):
         """Shut everything down cleanly."""
@@ -62,8 +64,10 @@ class SpeakerBot:
             except StopIteration:
                 self._playback_gen = None
                 self.display.show_idle()
+                led.status_idle()
 
         self.display.update()
+        led.update()
 
     # ==========================
     # HEAD COMMANDS
@@ -123,6 +127,7 @@ class SpeakerBot:
 
     def idle(self):
         self.display.show_idle()
+        led.status_idle()
 
     # ==========================
     # AUDIO COMMANDS
@@ -131,11 +136,13 @@ class SpeakerBot:
         """Start sending mic audio over UDP."""
         self.streaming = True
         self.display.show_listening()
+        led.status_listening()
 
     def stop_streaming(self):
         """Stop mic streaming."""
         self.streaming = False
         self.display.show_idle()
+        led.status_idle()
 
     def read_mic_chunk(self):
         """Read a chunk of mic audio. Returns bytes or None."""
@@ -151,12 +158,15 @@ class SpeakerBot:
         """Play a WAV file (blocking)."""
         self.display.show_speaking()
         self.display.draw()
+        led.status_speaking()
         self.speaker.play_wav(wav_data)
         self.display.show_idle()
+        led.status_idle()
 
     def play_audio_chunked(self, wav_data):
         """Start non-blocking WAV playback."""
         self.display.show_speaking()
+        led.status_speaking()
         self._playback_gen = self.speaker.play_wav_chunked(wav_data)
 
     def begin_wav_receive(self):
@@ -164,6 +174,7 @@ class SpeakerBot:
         self._wav_buffer = bytearray()
         self._receiving_wav = True
         self.display.show_thinking()
+        led.status_thinking()
 
     def append_wav_data(self, chunk):
         """Append a chunk of incoming WAV data."""

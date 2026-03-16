@@ -3,6 +3,7 @@
 import network
 import time
 from config import WIFI_SSID, WIFI_PASS
+import led
 
 
 def connect_wifi():
@@ -34,21 +35,27 @@ def connect_wifi():
     if wlan.isconnected():
         ip = wlan.ifconfig()[0]
         print(f"Already connected: {ip}")
+        led.status_connected()
         return ip
 
     print(f"Connecting to {WIFI_SSID}...")
+    led.status_connecting()
     wlan.connect(WIFI_SSID, WIFI_PASS)
 
-    timeout = 40
+    timeout = 400
     while not wlan.isconnected() and timeout > 0:
-        time.sleep(0.5)
+        time.sleep_ms(50)
+        led.update()
         timeout -= 1
-        print(".", end="")
+        if timeout % 10 == 0:
+            print(".", end="")
 
     if wlan.isconnected():
         ip = wlan.ifconfig()[0]
         print(f"\nConnected! IP: {ip}")
+        led.status_connected()
         return ip
     else:
         print("\nWiFi connection failed!")
+        led.status_error()
         return None

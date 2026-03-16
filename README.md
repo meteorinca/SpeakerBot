@@ -54,6 +54,11 @@ A MicroPython-based static robot with a rotating head, microphone, speaker, and 
 | VCC | 3.3V | Power |
 | GND | GND | Ground |
 
+### Built-in RGB LED (NeoPixel)
+| Function | GPIO | Notes |
+|----------|------|-------|
+| Data In | **GPIO 48** | Usually the built-in NeoPixel on ESP32-S3 boards |
+
 ### Pin Summary Diagram
 ```
 ESP32-S3 Pin Map for SpeakerBot
@@ -68,6 +73,7 @@ GPIO 9  ──── OLED SCL (I2C)
 GPIO 15 ──── MAX98357 BCLK
 GPIO 16 ──── MAX98357 LRC
 GPIO 17 ──── MAX98357 DIN
+GPIO 48 ──── Internal RGB LED (NeoPixel)
 
 Power:
 3.3V ──── INMP441 VDD, OLED VCC
@@ -235,6 +241,18 @@ Send these via UDP to port 5005, or type in the web terminal.
 | `SLEEP` | `-_-` | Sleep mode |
 | `WAKE` | `O_O` | Wake up |
 | `IDLE` | `^_^` | Default idle |
+
+### LED Status Indicators
+The built-in NeoPixel provides quick visual feedback on the bot's state:
+| Color | Animation | Meaning |
+|-------|-----------|---------|
+| **Blue** | Fast Blink | Connecting to WiFi... |
+| **Green** | Solid | Connected to WiFi successfully |
+| **Red** | Fast Blink | WiFi connection error |
+| **Cyan** | Slow Blink | Idle / Ready |
+| **Yellow** | Solid | Listening (mic active) |
+| **Green/Blue** | Fast Blink | Speaking (playing audio) |
+| **Purple/Pink** | Fast Blink | Thinking... (receiving playback audio) |
 
 ### Audio
 | Command | Description |
