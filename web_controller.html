@@ -1,0 +1,1044 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>SpeakerBot Controller</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-secondary: #1a1a2e;
+            --bg-card: rgba(255, 255, 255, 0.05);
+            --accent: #00d4ff;
+            --accent-glow: rgba(0, 212, 255, 0.3);
+            --success: #00e676;
+            --warning: #ffab00;
+            --danger: #ff5252;
+            --text: #ffffff;
+            --text-dim: rgba(255, 255, 255, 0.6);
+            --purple: #a855f7;
+            --pink: #ec4899;
+            --orange: #f97316;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            min-height: 100vh;
+            color: var(--text);
+            padding: 15px;
+            line-height: 1.4;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            padding: 20px 0;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            font-size: 2em;
+            font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--orange));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9em;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .card-header h2 {
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+
+        .card-header .icon {
+            font-size: 1.3em;
+        }
+
+        /* Connection */
+        .connection-grid {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.3);
+            color: var(--text);
+            font-size: 15px;
+            transition: border-color 0.2s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent), #0099cc);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px var(--accent-glow);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, var(--success), #00b862);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, var(--danger), #c62828);
+            color: white;
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-large {
+            padding: 16px 32px;
+            font-size: 16px;
+        }
+
+        /* Status */
+        .status-bar {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 12px 16px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--danger);
+            box-shadow: 0 0 10px var(--danger);
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.connected {
+            background: var(--success);
+            box-shadow: 0 0 10px var(--success);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .status-text {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .status-ip {
+            font-family: monospace;
+            color: var(--accent);
+        }
+
+        /* Head Slider */
+        .head-control {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            margin-bottom: 15px;
+        }
+
+        .head-control label {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .head-control input[type="range"] {
+            flex: 1;
+            height: 8px;
+            -webkit-appearance: none;
+            background: linear-gradient(90deg, var(--accent), var(--purple), var(--accent));
+            border-radius: 4px;
+            outline: none;
+        }
+
+        .head-control input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 24px;
+            height: 24px;
+            background: var(--accent);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-glow);
+        }
+
+        .head-control .angle-display {
+            font-family: monospace;
+            font-size: 18px;
+            color: var(--accent);
+            min-width: 40px;
+            text-align: right;
+        }
+
+        /* Head quick buttons */
+        .head-buttons {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        /* Command buttons */
+        .cmd-section {
+            margin-bottom: 20px;
+        }
+
+        .cmd-section h3 {
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .cmd-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .cmd-btn {
+            padding: 14px 10px;
+            background: linear-gradient(145deg, #2a2a4a, #1a1a2e);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.15s;
+            text-align: center;
+        }
+
+        .cmd-btn:hover {
+            background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
+            border-color: var(--accent);
+        }
+
+        .cmd-btn:active {
+            transform: scale(0.95);
+            background: var(--accent);
+        }
+
+        .cmd-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .cmd-btn .emoji {
+            font-size: 20px;
+            display: block;
+            margin-bottom: 4px;
+        }
+
+        .cmd-btn.expression { border-color: rgba(255, 171, 0, 0.3); }
+        .cmd-btn.head-cmd { border-color: rgba(0, 212, 255, 0.3); }
+        .cmd-btn.audio-cmd { border-color: rgba(0, 230, 118, 0.3); }
+        .cmd-btn.system { border-color: rgba(99, 102, 241, 0.3); }
+
+        .cmd-btn.danger {
+            background: linear-gradient(145deg, #4a2a2a, #2e1a1a);
+            border-color: rgba(255, 82, 82, 0.5);
+        }
+
+        .cmd-btn.danger:active {
+            background: var(--danger);
+        }
+
+        /* Audio Section */
+        .audio-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .recording-indicator {
+            display: none;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: rgba(255, 82, 82, 0.15);
+            border: 1px solid rgba(255, 82, 82, 0.3);
+            border-radius: 10px;
+            font-size: 14px;
+        }
+
+        .recording-indicator.active {
+            display: flex;
+        }
+
+        .rec-dot {
+            width: 10px;
+            height: 10px;
+            background: var(--danger);
+            border-radius: 50%;
+            animation: rec-pulse 1s infinite;
+        }
+
+        @keyframes rec-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.5; transform: scale(1.3); }
+        }
+
+        .audio-level-bar {
+            height: 30px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 8px;
+            overflow: hidden;
+            margin: 10px 0;
+            position: relative;
+        }
+
+        .audio-level-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--success), var(--warning), var(--danger));
+            border-radius: 8px;
+            transition: width 0.1s;
+            width: 0%;
+        }
+
+        .audio-level-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 12px;
+            font-weight: 600;
+            text-shadow: 0 0 5px rgba(0, 0, 0, 0.8);
+        }
+
+        /* Recordings list */
+        .recordings-list {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+
+        .recording-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            margin-bottom: 6px;
+            font-size: 13px;
+        }
+
+        .recording-item .rec-name {
+            font-family: monospace;
+            color: var(--accent);
+        }
+
+        .recording-item .rec-info {
+            color: var(--text-dim);
+        }
+
+        .recording-item .btn {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        /* Terminal */
+        .terminal {
+            background: #0a0a0f;
+            border-radius: 10px;
+            overflow: hidden;
+            font-family: 'Consolas', 'Monaco', monospace;
+        }
+
+        .terminal-header {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .terminal-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+        }
+
+        .terminal-output {
+            height: 150px;
+            overflow-y: auto;
+            padding: 10px 15px;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .terminal-line { margin: 2px 0; }
+        .terminal-line.cmd { color: var(--accent); }
+        .terminal-line.response { color: var(--success); }
+        .terminal-line.error { color: var(--danger); }
+        .terminal-line.info { color: var(--text-dim); }
+
+        .terminal-input {
+            display: flex;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .terminal-input span {
+            padding: 12px;
+            color: var(--accent);
+        }
+
+        .terminal-input input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-family: inherit;
+            font-size: 13px;
+            padding: 12px 12px 12px 0;
+        }
+
+        .terminal-input input:focus { outline: none; }
+
+        .terminal-input button {
+            padding: 0 15px;
+            background: var(--accent);
+            border: none;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .toast.success { border-left: 4px solid var(--success); }
+        .toast.error { border-left: 4px solid var(--danger); }
+        .toast.info { border-left: 4px solid var(--accent); }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .connection-grid { grid-template-columns: 1fr; }
+            .connection-grid .btn { justify-content: center; }
+            .cmd-grid { grid-template-columns: repeat(3, 1fr); }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="toast-container" id="toastContainer"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <h1>🔊 SpeakerBot Controller</h1>
+            <p class="subtitle">ESP32-S3 • Mic + Speaker + Servo</p>
+        </header>
+
+        <!-- Connection -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">📡</span>
+                <h2>Connection</h2>
+            </div>
+
+            <div class="connection-grid">
+                <input type="text" id="robotIp" placeholder="Robot IP (e.g. 192.168.1.42)">
+                <button class="btn btn-success btn-large" id="connectBtn" onclick="toggleConnection()">
+                    🔌 <span id="connectBtnText">Connect</span>
+                </button>
+                <button class="btn btn-secondary" onclick="testConnection()">
+                    🔍 Test
+                </button>
+            </div>
+
+            <div class="status-bar">
+                <div class="status-dot" id="statusDot"></div>
+                <div class="status-text">
+                    <span id="statusText">Disconnected</span>
+                    <span class="status-ip" id="statusIp"></span>
+                </div>
+                <div style="font-size:12px; color:var(--text-dim)">
+                    <span id="latencyText">---</span>ms
+                </div>
+            </div>
+        </div>
+
+        <!-- Head Control -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🤖</span>
+                <h2>Head Control</h2>
+            </div>
+
+            <div class="head-control">
+                <label>◀ Head ▶</label>
+                <input type="range" id="headSlider" min="0" max="180" value="90"
+                    oninput="onHeadSlider(this.value)">
+                <span class="angle-display" id="headAngle">90°</span>
+            </div>
+
+            <div class="head-buttons">
+                <button class="cmd-btn head-cmd" onclick="sendCmd('HEAD LEFT')" disabled>
+                    <span class="emoji">◀</span> Left
+                </button>
+                <button class="cmd-btn head-cmd" onclick="sendCmd('HEAD CENTER')" disabled>
+                    <span class="emoji">⏺</span> Center
+                </button>
+                <button class="cmd-btn head-cmd" onclick="sendCmd('HEAD RIGHT')" disabled>
+                    <span class="emoji">▶</span> Right
+                </button>
+                <button class="cmd-btn head-cmd" onclick="sendCmd('HEAD NOD')" disabled>
+                    <span class="emoji">👍</span> Nod
+                </button>
+                <button class="cmd-btn head-cmd" onclick="sendCmd('HEAD SHAKE')" disabled>
+                    <span class="emoji">👎</span> Shake
+                </button>
+            </div>
+        </div>
+
+        <!-- Expressions -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">😃</span>
+                <h2>Expressions</h2>
+            </div>
+
+            <div class="cmd-grid">
+                <button class="cmd-btn expression" onclick="sendCmd('HAPPY')" disabled>
+                    <span class="emoji">😊</span> Happy
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('SAD')" disabled>
+                    <span class="emoji">😢</span> Sad
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('ANGRY')" disabled>
+                    <span class="emoji">😠</span> Angry
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('SURPRISED')" disabled>
+                    <span class="emoji">😲</span> Surprised
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('SLEEP')" disabled>
+                    <span class="emoji">😴</span> Sleep
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('WAKE')" disabled>
+                    <span class="emoji">⏰</span> Wake
+                </button>
+                <button class="cmd-btn expression" onclick="sendCmd('IDLE')" disabled>
+                    <span class="emoji">😌</span> Idle
+                </button>
+                <button class="cmd-btn danger" onclick="sendCmd('STOP')" disabled>
+                    <span class="emoji">🛑</span> Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Audio -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">🎤</span>
+                <h2>Audio</h2>
+            </div>
+
+            <div class="cmd-section">
+                <h3>🎙️ Microphone Streaming</h3>
+                <div class="audio-controls">
+                    <button class="cmd-btn audio-cmd" onclick="sendCmd('LISTEN')" disabled>
+                        <span class="emoji">🎤</span> Start Mic
+                    </button>
+                    <button class="cmd-btn audio-cmd" onclick="sendCmd('MUTE')" disabled>
+                        <span class="emoji">🔇</span> Mute Mic
+                    </button>
+                    <button class="btn btn-danger" id="recordBtn" onclick="toggleRecording()" disabled>
+                        ⏺ Record
+                    </button>
+                </div>
+
+                <div class="recording-indicator" id="recordingIndicator">
+                    <div class="rec-dot"></div>
+                    <span>Recording...</span>
+                    <span id="recordingDuration">0s</span>
+                </div>
+
+                <div class="audio-level-bar">
+                    <div class="audio-level-fill" id="audioLevelFill"></div>
+                    <span class="audio-level-label" id="audioLevelLabel">Audio Level</span>
+                </div>
+            </div>
+
+            <div class="cmd-section">
+                <h3>🔊 Playback</h3>
+                <div class="audio-controls">
+                    <input type="file" id="wavFileInput" accept=".wav" style="display:none"
+                        onchange="uploadAndPlay()">
+                    <button class="btn btn-primary" onclick="document.getElementById('wavFileInput').click()" disabled
+                        id="uploadBtn">
+                        📁 Upload & Play WAV
+                    </button>
+                    <button class="btn btn-secondary" onclick="loadRecordings()" disabled id="listRecBtn">
+                        📋 List Recordings
+                    </button>
+                </div>
+                <div class="recordings-list" id="recordingsList"></div>
+            </div>
+        </div>
+
+        <!-- Terminal -->
+        <div class="card">
+            <div class="card-header">
+                <span class="icon">💻</span>
+                <h2>Terminal</h2>
+            </div>
+
+            <div class="terminal">
+                <div class="terminal-header">
+                    <div class="terminal-dot" style="background:#ff5f57"></div>
+                    <div class="terminal-dot" style="background:#febc2e"></div>
+                    <div class="terminal-dot" style="background:#28c840"></div>
+                    <span style="font-size:12px; color:var(--text-dim); margin-left:8px">SpeakerBot Console</span>
+                </div>
+                <div class="terminal-output" id="terminalOutput">
+                    <div class="terminal-line info">Welcome to SpeakerBot Controller</div>
+                    <div class="terminal-line info">Enter robot IP and click Connect</div>
+                </div>
+                <div class="terminal-input">
+                    <span>❯</span>
+                    <input type="text" id="cmdInput" placeholder="Type command..."
+                        onkeydown="if(event.key==='Enter')sendManualCmd()" disabled>
+                    <button onclick="sendManualCmd()" disabled id="sendBtn">Send</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ========================
+        // STATE
+        // ========================
+        const PROXY_URL = 'http://localhost:8080';
+        let connected = false;
+        let robotIp = '';
+        let isRecording = false;
+        let recordingStart = null;
+        let recordingTimer = null;
+        let audioStatusInterval = null;
+
+        // Load saved IP
+        const savedIp = localStorage.getItem('speakerbot_ip');
+        if (savedIp) document.getElementById('robotIp').value = savedIp;
+
+        // ========================
+        // CONNECTION
+        // ========================
+        function toggleConnection() {
+            if (connected) {
+                disconnect();
+            } else {
+                connect();
+            }
+        }
+
+        async function connect() {
+            robotIp = document.getElementById('robotIp').value.trim();
+            if (!robotIp) {
+                showToast('Enter robot IP address', 'error');
+                return;
+            }
+
+            localStorage.setItem('speakerbot_ip', robotIp);
+            logTerminal('Connecting to ' + robotIp + '...', 'info');
+
+            try {
+                const res = await fetch(`${PROXY_URL}/ping?ip=${robotIp}`);
+                const data = await res.json();
+
+                if (data.reachable) {
+                    connected = true;
+                    updateConnectionUI(true, data.latency_ms);
+                    logTerminal(`Connected! Latency: ${data.latency_ms}ms`, 'response');
+                    showToast('Connected to SpeakerBot!', 'success');
+                    enableButtons(true);
+                } else {
+                    logTerminal('Connection failed: ' + data.response, 'error');
+                    showToast('Cannot reach robot', 'error');
+                }
+            } catch (e) {
+                logTerminal('Proxy not running! Start udp_proxy.py first', 'error');
+                showToast('Start udp_proxy.py on PC first', 'error');
+            }
+        }
+
+        function disconnect() {
+            connected = false;
+            updateConnectionUI(false);
+            enableButtons(false);
+            logTerminal('Disconnected', 'info');
+            if (audioStatusInterval) clearInterval(audioStatusInterval);
+        }
+
+        async function testConnection() {
+            robotIp = document.getElementById('robotIp').value.trim();
+            if (!robotIp) return;
+
+            try {
+                const res = await fetch(`${PROXY_URL}/ping?ip=${robotIp}`);
+                const data = await res.json();
+                if (data.reachable) {
+                    showToast(`Reachable! ${data.latency_ms}ms`, 'success');
+                } else {
+                    showToast('Not reachable', 'error');
+                }
+            } catch (e) {
+                showToast('Proxy not running', 'error');
+            }
+        }
+
+        function updateConnectionUI(isConnected, latency) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            const ip = document.getElementById('statusIp');
+            const btn = document.getElementById('connectBtnText');
+            const lat = document.getElementById('latencyText');
+
+            dot.className = 'status-dot' + (isConnected ? ' connected' : '');
+            text.textContent = isConnected ? 'Connected' : 'Disconnected';
+            ip.textContent = isConnected ? robotIp : '';
+            btn.textContent = isConnected ? 'Disconnect' : 'Connect';
+            if (latency) lat.textContent = latency;
+        }
+
+        function enableButtons(enabled) {
+            document.querySelectorAll('.cmd-btn, #cmdInput, #sendBtn, #recordBtn, #uploadBtn, #listRecBtn')
+                .forEach(el => el.disabled = !enabled);
+        }
+
+        // ========================
+        // COMMANDS
+        // ========================
+        async function sendCmd(cmd) {
+            if (!connected) return;
+            logTerminal('> ' + cmd, 'cmd');
+
+            try {
+                const res = await fetch(`${PROXY_URL}/send?ip=${robotIp}&cmd=${encodeURIComponent(cmd)}`);
+                const data = await res.json();
+                logTerminal(data.response, data.connected ? 'response' : 'error');
+
+                if (data.latency_ms) {
+                    document.getElementById('latencyText').textContent = data.latency_ms;
+                }
+            } catch (e) {
+                logTerminal('Send failed: ' + e.message, 'error');
+            }
+        }
+
+        function sendManualCmd() {
+            const input = document.getElementById('cmdInput');
+            const cmd = input.value.trim();
+            if (cmd) {
+                sendCmd(cmd);
+                input.value = '';
+            }
+        }
+
+        // ========================
+        // HEAD SLIDER
+        // ========================
+        let sliderTimeout = null;
+        function onHeadSlider(value) {
+            document.getElementById('headAngle').textContent = value + '°';
+            clearTimeout(sliderTimeout);
+            sliderTimeout = setTimeout(() => {
+                sendCmd('HEAD ' + value);
+            }, 100);  // Debounce
+        }
+
+        // ========================
+        // AUDIO RECORDING
+        // ========================
+        function toggleRecording() {
+            if (isRecording) {
+                stopRecording();
+            } else {
+                startRecording();
+            }
+        }
+
+        async function startRecording() {
+            // First make sure mic is streaming
+            await sendCmd('LISTEN');
+
+            try {
+                const res = await fetch(`${PROXY_URL}/record/start`);
+                const data = await res.json();
+
+                isRecording = true;
+                recordingStart = Date.now();
+                document.getElementById('recordBtn').textContent = '⏹ Stop';
+                document.getElementById('recordBtn').className = 'btn btn-danger';
+                document.getElementById('recordingIndicator').className = 'recording-indicator active';
+
+                recordingTimer = setInterval(updateRecordingDuration, 100);
+
+                // Start polling audio status for level
+                audioStatusInterval = setInterval(pollAudioStatus, 200);
+
+                logTerminal('Recording started', 'info');
+            } catch (e) {
+                logTerminal('Failed to start recording', 'error');
+            }
+        }
+
+        async function stopRecording() {
+            try {
+                const res = await fetch(`${PROXY_URL}/record/stop`);
+                const data = await res.json();
+
+                isRecording = false;
+                clearInterval(recordingTimer);
+                clearInterval(audioStatusInterval);
+                document.getElementById('recordBtn').textContent = '⏺ Record';
+                document.getElementById('recordBtn').className = 'btn btn-danger';
+                document.getElementById('recordingIndicator').className = 'recording-indicator';
+
+                if (data.status === 'saved') {
+                    logTerminal(`Saved: ${data.filename} (${data.duration_s}s)`, 'response');
+                    showToast(`Recorded ${data.duration_s}s`, 'success');
+                } else {
+                    logTerminal('No audio data captured', 'error');
+                    showToast('No audio data', 'error');
+                }
+            } catch (e) {
+                logTerminal('Failed to stop recording', 'error');
+            }
+        }
+
+        function updateRecordingDuration() {
+            if (recordingStart) {
+                const secs = ((Date.now() - recordingStart) / 1000).toFixed(1);
+                document.getElementById('recordingDuration').textContent = secs + 's';
+            }
+        }
+
+        async function pollAudioStatus() {
+            try {
+                const res = await fetch(`${PROXY_URL}/audio/status`);
+                const data = await res.json();
+
+                // Simulate audio level from buffer size change rate
+                const level = Math.min(100, Math.max(0, (data.buffer_size % 10000) / 100));
+                document.getElementById('audioLevelFill').style.width = level + '%';
+            } catch (e) {
+                // Quiet fail
+            }
+        }
+
+        // ========================
+        // PLAYBACK
+        // ========================
+        async function uploadAndPlay() {
+            const fileInput = document.getElementById('wavFileInput');
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            logTerminal(`Uploading ${file.name}...`, 'info');
+
+            try {
+                const arrayBuffer = await file.arrayBuffer();
+                const res = await fetch(`${PROXY_URL}/playback/upload?ip=${robotIp}`, {
+                    method: 'POST',
+                    body: arrayBuffer,
+                    headers: { 'Content-Type': 'application/octet-stream' }
+                });
+                const data = await res.json();
+
+                if (data.status === 'sent') {
+                    logTerminal('WAV sent to bot for playback!', 'response');
+                    showToast('Playing audio!', 'success');
+                } else {
+                    logTerminal('Playback failed: ' + (data.message || 'unknown'), 'error');
+                }
+            } catch (e) {
+                logTerminal('Upload failed: ' + e.message, 'error');
+            }
+
+            fileInput.value = '';
+        }
+
+        async function loadRecordings() {
+            try {
+                const res = await fetch(`${PROXY_URL}/recordings`);
+                const data = await res.json();
+
+                const list = document.getElementById('recordingsList');
+                if (data.recordings.length === 0) {
+                    list.innerHTML = '<div style="color:var(--text-dim);padding:10px;text-align:center">No recordings yet</div>';
+                    return;
+                }
+
+                list.innerHTML = data.recordings.map(r => `
+                    <div class="recording-item">
+                        <span class="rec-name">🎵 ${r.filename}</span>
+                        <span class="rec-info">${r.duration_s}s</span>
+                        <button class="btn btn-primary" onclick="playRecording('${r.path.replace(/\\/g, '\\\\')}')">
+                            ▶ Play
+                        </button>
+                    </div>
+                `).join('');
+
+            } catch (e) {
+                logTerminal('Failed to load recordings', 'error');
+            }
+        }
+
+        async function playRecording(filepath) {
+            logTerminal(`Playing: ${filepath}`, 'info');
+            try {
+                const res = await fetch(`${PROXY_URL}/playback?ip=${robotIp}&file=${encodeURIComponent(filepath)}`);
+                const data = await res.json();
+                if (data.status === 'sent') {
+                    showToast('Sent to bot!', 'success');
+                } else {
+                    showToast('Send failed', 'error');
+                }
+            } catch (e) {
+                logTerminal('Playback failed: ' + e.message, 'error');
+            }
+        }
+
+        // ========================
+        // TERMINAL
+        // ========================
+        function logTerminal(msg, type = 'info') {
+            const output = document.getElementById('terminalOutput');
+            const line = document.createElement('div');
+            line.className = 'terminal-line ' + type;
+            const time = new Date().toLocaleTimeString();
+            line.textContent = `[${time}] ${msg}`;
+            output.appendChild(line);
+            output.scrollTop = output.scrollHeight;
+
+            // Keep max 100 lines
+            while (output.children.length > 100) {
+                output.removeChild(output.firstChild);
+            }
+        }
+
+        // ========================
+        // TOAST
+        // ========================
+        function showToast(msg, type = 'info') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'toast ' + type;
+            toast.innerHTML = `<span>${msg}</span>`;
+            container.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+
+</html>
