@@ -39,7 +39,8 @@ class Display:
         self.display = None
         self.enabled = False
         self.current_face = self.FACE_IDLE
-        self.status_line = "Ready"
+        self.idle_text = "Ready"
+        self.status_line = self.idle_text
         self.show_audio_bar = False
         self.audio_level = 0
         self._last_draw = 0
@@ -114,8 +115,9 @@ class Display:
 
     def show_ip(self, ip):
         """Show IP address on screen."""
+        self.idle_text = ip if ip else "No WiFi"
         self.set_face("^_^")
-        self.set_status(ip if ip else "No WiFi")
+        self.set_status(self.idle_text)
         self.draw()
 
     def show_listening(self):
@@ -133,7 +135,7 @@ class Display:
     def show_idle(self):
         """Show idle state."""
         self.set_face(self.FACE_IDLE)
-        self.set_status("Ready")
+        self.set_status(self.idle_text)
         self.show_audio_bar = False
 
     def show_thinking(self):

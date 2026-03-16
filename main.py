@@ -13,19 +13,17 @@ def main():
     print("  SPEAKERBOT v1.0")
     print("=" * 40)
 
-    # Step 1: Connect to WiFi
-    ip = connect_wifi()
-
-    # Step 2: Initialize bot hardware
+    # Step 1: Initialize bot hardware
     from bot import SpeakerBot
     from udp_server import UDPServer
 
     bot = SpeakerBot()
     bot.start()
 
+    # Step 2: Connect to WiFi
+    ip = connect_wifi(bot.display)
+
     if ip:
-        # Show IP on display
-        bot.display.show_ip(ip)
         time.sleep(2)
 
         # Step 3: Start UDP server
