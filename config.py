@@ -26,7 +26,6 @@ MIC_SD_PIN = 7             # GPIO7  - I2S Serial Data (SD / DOUT)
 
 MIC_SAMPLE_RATE = 16000    # 16kHz - good balance of quality/bandwidth
 MIC_BITS = 16              # 16-bit samples
-MIC_CHANNEL = 0            # I2S bus 0
 MIC_BUFFER_MS = 100        # Buffer size in milliseconds
 MIC_BUFFER_SIZE = 3200     # MIC_SAMPLE_RATE * 2 (bytes per sample) * MIC_BUFFER_MS / 1000
 
@@ -37,9 +36,8 @@ SPK_BCLK_PIN = 15          # GPIO15 - I2S Bit Clock
 SPK_LRC_PIN = 16           # GPIO16 - I2S Left/Right Clock
 SPK_DIN_PIN = 17           # GPIO17 - I2S Data In
 
-SPK_SAMPLE_RATE = 16000    # Match for simplicity; can downsample if needed
+SPK_SAMPLE_RATE = 16000    # 16kHz to match mic format
 SPK_BITS = 16              # 16-bit output
-SPK_CHANNEL = 1            # I2S bus 1 (separate from mic)
 
 # ==========================
 # OLED DISPLAY (0.91" 128x32 SSD1306 I2C)

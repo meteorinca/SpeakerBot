@@ -140,6 +140,18 @@ class UDPServer:
             self.bot.idle()
             return "OK: Stopped"
 
+        # --- DIAGNOSTICS ---
+        elif action == "TEST":
+            if args and args[0] == "AUDIO":
+                results = self.bot.test_audio()
+                m = results['mic']
+                s = results['spk']
+                return (f"OK: ALL={results['all_pass']} "
+                        f"MIC(init={m['init']},read={m['read_ok']},signal={m['has_signal']},avg={m['avg_level']},max={m['max_level']},pass={m['pass']},err={m['error']}) "
+                        f"SPK(init={s['init']},play={s['play_ok']},pass={s['pass']},err={s['error']})")
+            else:
+                return "ERR: TEST needs AUDIO"
+
         else:
             return f"ERR: Unknown '{action}'"
 
