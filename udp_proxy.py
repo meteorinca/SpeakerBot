@@ -264,6 +264,24 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 'latency_ms': latency
             })
 
+        elif parsed.path == '/test/audio':
+            # Run audio diagnostics on the bot
+            params = parse_qs(parsed.query)
+            robot_ip = params.get('ip', [''])[0]
+            test_type = params.get('type', ['AUDIO'])[0].upper()
+
+            if not robot_ip:
+                self.send_error(400, 'Missing ip')
+                return
+
+            cmd = f'TEST {test_type}'
+            response = self.send_udp(robot_ip, cmd, timeout=15.0)
+            self.send_json({
+                'raw': response,
+                'success': 'OK' in response,
+                'test_type': test_type,
+            })
+
         elif parsed.path == '/':
             self.serve_status_page()
 
@@ -315,12 +333,12 @@ class ProxyHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(json.dumps(data).encode())
 
-    def send_udp(self, robot_ip, cmd):
+    def send_udp(self, robot_ip, cmd, timeout=TIMEOUT):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-            sock.settimeout(TIMEOUT)
+            sock.settimeout(timeout)
             sock.sendto(cmd.encode(), (robot_ip, UDP_CMD_PORT))
-            data, _ = sock.recvfrom(256)
+            data, _ = sock.recvfrom(512)
             sock.close()
             return data.decode()
         except socket.timeout:

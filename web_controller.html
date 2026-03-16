@@ -526,6 +526,98 @@
             .connection-grid .btn { justify-content: center; }
             .cmd-grid { grid-template-columns: repeat(3, 1fr); }
         }
+        /* Diagnostics */
+        .diag-card { border-color: rgba(168, 85, 247, 0.3); }
+
+        .diag-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .btn-diag {
+            background: linear-gradient(135deg, var(--purple), #7c3aed);
+            color: white;
+        }
+
+        .btn-diag:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(168, 85, 247, 0.3);
+        }
+
+        .diag-results {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            display: none;
+        }
+
+        .diag-results.visible { display: block; }
+
+        .diag-result-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .diag-result-item.pass { border-left-color: var(--success); }
+        .diag-result-item.fail { border-left-color: var(--danger); }
+
+        .diag-status-icon {
+            font-size: 24px;
+            min-width: 32px;
+            text-align: center;
+        }
+
+        .diag-details {
+            flex: 1;
+        }
+
+        .diag-details h4 {
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .diag-details .detail-row {
+            font-size: 12px;
+            color: var(--text-dim);
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .diag-details .detail-row span {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .diag-details .detail-row .val-ok { color: var(--success); }
+        .diag-details .detail-row .val-fail { color: var(--danger); }
+        .diag-details .detail-row .val-warn { color: var(--warning); }
+
+        .diag-spinner {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: var(--purple);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
     </style>
 </head>
 
@@ -686,6 +778,30 @@
             </div>
         </div>
 
+        <!-- Audio Diagnostics -->
+        <div class="card diag-card">
+            <div class="card-header">
+                <span class="icon">🔬</span>
+                <h2>Audio Diagnostics</h2>
+            </div>
+
+            <div class="diag-buttons">
+                <button class="btn btn-diag" id="testAllBtn" onclick="runAudioTest('AUDIO')" disabled>
+                    🧪 Test All Audio
+                </button>
+                <button class="btn btn-diag" id="testMicBtn" onclick="runAudioTest('MIC')" disabled>
+                    🎤 Test Mic Only
+                </button>
+                <button class="btn btn-diag" id="testSpkBtn" onclick="runAudioTest('SPK')" disabled>
+                    🔊 Test Speaker Only
+                </button>
+            </div>
+
+            <div class="diag-results" id="diagResults">
+                <div id="diagResultsContent"></div>
+            </div>
+        </div>
+
         <!-- Terminal -->
         <div class="card">
             <div class="card-header">
@@ -811,7 +927,7 @@
         }
 
         function enableButtons(enabled) {
-            document.querySelectorAll('.cmd-btn, #cmdInput, #sendBtn, #recordBtn, #uploadBtn, #listRecBtn')
+            document.querySelectorAll('.cmd-btn, #cmdInput, #sendBtn, #recordBtn, #uploadBtn, #listRecBtn, #testAllBtn, #testMicBtn, #testSpkBtn')
                 .forEach(el => el.disabled = !enabled);
         }
 
@@ -1037,6 +1153,123 @@
             toast.innerHTML = `<span>${msg}</span>`;
             container.appendChild(toast);
             setTimeout(() => toast.remove(), 3000);
+        }
+
+        // ========================
+        // AUDIO DIAGNOSTICS
+        // ========================
+        async function runAudioTest(type) {
+            if (!connected) return;
+
+            const btns = ['testAllBtn', 'testMicBtn', 'testSpkBtn'];
+            btns.forEach(id => document.getElementById(id).disabled = true);
+
+            const resultsDiv = document.getElementById('diagResults');
+            const contentDiv = document.getElementById('diagResultsContent');
+            resultsDiv.className = 'diag-results visible';
+            contentDiv.innerHTML = `<div style="text-align:center;padding:20px;"><span class="diag-spinner"></span> Running ${type} test... (check OLED for progress)</div>`;
+
+            logTerminal(`> TEST ${type}`, 'cmd');
+
+            try {
+                const res = await fetch(`${PROXY_URL}/test/audio?ip=${robotIp}&type=${type}`);
+                const data = await res.json();
+
+                logTerminal(data.raw, data.success ? 'response' : 'error');
+
+                if (data.success) {
+                    contentDiv.innerHTML = parseTestResults(data.raw, type);
+                    showToast('Audio test complete!', 'success');
+                } else {
+                    contentDiv.innerHTML = `<div class="diag-result-item fail"><span class="diag-status-icon">❌</span><div class="diag-details"><h4>Test Failed</h4><div class="detail-row"><span class="val-fail">${data.raw}</span></div></div></div>`;
+                    showToast('Audio test failed', 'error');
+                }
+            } catch (e) {
+                contentDiv.innerHTML = `<div class="diag-result-item fail"><span class="diag-status-icon">⚠️</span><div class="diag-details"><h4>Connection Error</h4><div class="detail-row"><span class="val-fail">${e.message}</span></div></div></div>`;
+                logTerminal('Test failed: ' + e.message, 'error');
+            }
+
+            btns.forEach(id => document.getElementById(id).disabled = false);
+        }
+
+        function parseTestResults(raw, type) {
+            let html = '';
+
+            if (type === 'AUDIO' || type === 'MIC') {
+                html += parseMicResult(raw);
+            }
+            if (type === 'AUDIO' || type === 'SPK') {
+                html += parseSpkResult(raw);
+            }
+            if (type === 'AUDIO') {
+                const allPass = raw.includes('ALL=True');
+                html += `<div class="diag-result-item ${allPass ? 'pass' : 'fail'}" style="margin-top:12px;background:rgba(${allPass ? '0,230,118' : '255,82,82'},0.08)">`
+                    + `<span class="diag-status-icon">${allPass ? '🎉' : '⚠️'}</span>`
+                    + `<div class="diag-details"><h4 style="font-size:16px">${allPass ? 'All Audio Tests Passed!' : 'Some Tests Failed'}</h4></div></div>`;
+            }
+
+            return html;
+        }
+
+        function parseMicResult(raw) {
+            // Parse MIC(...) or flat MIC fields
+            const micMatch = raw.match(/MIC\(([^)]+)\)/) || raw.match(/MIC (.+)/);
+            if (!micMatch) return '';
+
+            const fields = micMatch[1];
+            const get = (key) => {
+                const m = fields.match(new RegExp(key + '=([^,\\s)]+)'));
+                return m ? m[1] : '?';
+            };
+
+            const init = get('init');
+            const read = get('read');
+            const signal = get('signal');
+            const avg = get('avg');
+            const max = get('max');
+            const pass = get('pass');
+            const err = get('err');
+            const isPass = pass === 'True';
+
+            return `<div class="diag-result-item ${isPass ? 'pass' : 'fail'}">`
+                + `<span class="diag-status-icon">${isPass ? '✅' : '❌'}</span>`
+                + `<div class="diag-details">`
+                + `<h4>🎤 Microphone (INMP441)</h4>`
+                + `<div class="detail-row">`
+                + `<span>I2S Init: <b class="${init === 'True' ? 'val-ok' : 'val-fail'}">${init}</b></span>`
+                + `<span>Read Data: <b class="${read === 'True' ? 'val-ok' : 'val-fail'}">${read}</b></span>`
+                + `<span>Signal: <b class="${signal === 'True' ? 'val-ok' : 'val-warn'}">${signal}</b></span>`
+                + `<span>Avg Level: <b>${avg}</b></span>`
+                + `<span>Max Level: <b>${max}</b></span>`
+                + (err !== 'None' ? `<span>Error: <b class="val-fail">${err}</b></span>` : '')
+                + `</div></div></div>`;
+        }
+
+        function parseSpkResult(raw) {
+            const spkMatch = raw.match(/SPK\(([^)]+)\)/) || raw.match(/SPK (.+)/);
+            if (!spkMatch) return '';
+
+            const fields = spkMatch[1];
+            const get = (key) => {
+                const m = fields.match(new RegExp(key + '=([^,\\s)]+)'));
+                return m ? m[1] : '?';
+            };
+
+            const init = get('init');
+            const play = get('play');
+            const pass = get('pass');
+            const err = get('err');
+            const isPass = pass === 'True';
+
+            return `<div class="diag-result-item ${isPass ? 'pass' : 'fail'}">`
+                + `<span class="diag-status-icon">${isPass ? '✅' : '❌'}</span>`
+                + `<div class="diag-details">`
+                + `<h4>🔊 Speaker (MAX98357A)</h4>`
+                + `<div class="detail-row">`
+                + `<span>I2S Init: <b class="${init === 'True' ? 'val-ok' : 'val-fail'}">${init}</b></span>`
+                + `<span>Play Test Tone: <b class="${play === 'True' ? 'val-ok' : 'val-fail'}">${play}</b></span>`
+                + (err !== 'None' ? `<span>Error: <b class="val-fail">${err}</b></span>` : '')
+                + `</div></div></div>`;
         }
     </script>
 </body>

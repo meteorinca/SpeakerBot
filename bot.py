@@ -189,6 +189,77 @@ class SpeakerBot:
             self._wav_buffer = bytearray()
 
     # ==========================
+    # DIAGNOSTICS
+    # ==========================
+    def test_audio(self):
+        """Run audio diagnostic tests. Shows results on OLED and returns dict."""
+        results = {}
+
+        # --- Test Microphone ---
+        self.display.set_face(self.display.FACE_LISTENING)
+        self.display.set_status("Testing Mic...")
+        self.display.draw()
+        time.sleep_ms(300)
+
+        mic_result = self.mic.test()
+        results['mic'] = mic_result
+        print(f"MIC TEST: init={mic_result['init']} read={mic_result['read_ok']} "
+              f"signal={mic_result['has_signal']} avg={mic_result['avg_level']} "
+              f"max={mic_result['max_level']} err={mic_result['error']}")
+
+        if mic_result['pass']:
+            self.display.set_status(f"Mic OK lvl:{mic_result['avg_level']}")
+            self.display.set_face(self.display.FACE_HAPPY)
+        else:
+            self.display.set_status(f"Mic FAIL")
+            self.display.set_face(self.display.FACE_ANGRY)
+        self.display.draw()
+        time.sleep(1)
+
+        # --- Test Speaker ---
+        self.display.set_face(self.display.FACE_SPEAKING)
+        self.display.set_status("Testing Spkr...")
+        self.display.draw()
+        time.sleep_ms(300)
+
+        spk_result = self.speaker.test()
+        results['spk'] = spk_result
+        print(f"SPK TEST: init={spk_result['init']} play={spk_result['play_ok']} "
+              f"err={spk_result['error']}")
+
+        if spk_result['pass']:
+            self.display.set_status("Spkr OK")
+            self.display.set_face(self.display.FACE_HAPPY)
+        else:
+            self.display.set_status(f"Spkr FAIL")
+            self.display.set_face(self.display.FACE_ANGRY)
+        self.display.draw()
+        time.sleep(1)
+
+        # --- Summary ---
+        all_pass = mic_result['pass'] and spk_result['pass']
+        if all_pass:
+            self.display.set_face(self.display.FACE_HAPPY)
+            self.display.set_status("Audio ALL OK!")
+        else:
+            fails = []
+            if not mic_result['pass']:
+                fails.append("MIC")
+            if not spk_result['pass']:
+                fails.append("SPK")
+            self.display.set_face(self.display.FACE_SAD)
+            self.display.set_status(f"FAIL: {'+'.join(fails)}")
+        self.display.draw()
+        time.sleep(2)
+
+        # Return to idle
+        self.display.show_idle()
+        self.display.draw()
+
+        results['all_pass'] = all_pass
+        return results
+
+    # ==========================
     # STATUS
     # ==========================
     def get_status(self):

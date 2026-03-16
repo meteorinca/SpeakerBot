@@ -88,6 +88,46 @@ class Microphone:
         level = min(100, int(avg / 200))
         return level
 
+    def test(self):
+        """Run microphone diagnostic. Returns dict with results."""
+        result = {
+            'name': 'Microphone',
+            'init': self.running,
+            'read_ok': False,
+            'has_signal': False,
+            'avg_level': 0,
+            'max_level': 0,
+            'chunks_read': 0,
+            'error': None,
+            'pass': False,
+        }
+        if not self.running or not self.i2s:
+            result['error'] = 'I2S init failed'
+            return result
+
+        try:
+            levels = []
+            for _ in range(10):
+                data = self.read_chunk()
+                if data and len(data) > 0:
+                    result['chunks_read'] += 1
+                    level = self.get_audio_level(data)
+                    levels.append(level)
+                time.sleep_ms(50)
+
+            result['read_ok'] = result['chunks_read'] > 0
+            if levels:
+                result['avg_level'] = int(sum(levels) / len(levels))
+                result['max_level'] = max(levels)
+                # If we get any level > 0, there's signal (even noise)
+                result['has_signal'] = result['max_level'] > 0
+
+            result['pass'] = result['read_ok']
+        except Exception as e:
+            result['error'] = str(e)
+
+        return result
+
     def deinit(self):
         """Release I2S resources."""
         if self.i2s:
@@ -226,6 +266,44 @@ class Speaker:
     def stop(self):
         """Stop current playback."""
         self.playing = False
+
+    def test(self):
+        """Run speaker diagnostic. Returns dict with results."""
+        import math
+        result = {
+            'name': 'Speaker',
+            'init': self.running,
+            'play_ok': False,
+            'tone_hz': 440,
+            'duration_ms': 500,
+            'error': None,
+            'pass': False,
+        }
+        if not self.running or not self.i2s:
+            result['error'] = 'I2S init failed'
+            return result
+
+        try:
+            # Generate 440Hz tone for 0.5s
+            num_samples = SPK_SAMPLE_RATE // 2  # 0.5 seconds
+            buf = bytearray(num_samples * 2)  # 16-bit = 2 bytes per sample
+            for i in range(num_samples):
+                t = i / SPK_SAMPLE_RATE
+                val = int(8000 * math.sin(2 * math.pi * 440 * t))
+                struct.pack_into('<h', buf, i * 2, val)
+
+            self.playing = True
+            written = self.i2s.write(buf)
+            self.playing = False
+
+            result['play_ok'] = written > 0
+            result['bytes_written'] = written
+            result['pass'] = result['play_ok']
+        except Exception as e:
+            result['error'] = str(e)
+            self.playing = False
+
+        return result
 
     def deinit(self):
         """Release I2S resources."""
