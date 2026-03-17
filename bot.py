@@ -5,6 +5,7 @@
 # the switching between mic mode and speaker mode.
 
 import time
+import gc
 from servo import HeadServo
 from display import Display
 from audio import Microphone, Speaker
@@ -37,12 +38,8 @@ class SpeakerBot:
         self.running = False
         self._audio_mode = self.MODE_IDLE
 
-        # Playback state
-        self._playback_gen = None
-        self._wav_buffer = bytearray()
-        self._receiving_wav = False
-
         print("SpeakerBot initialized!")
+        gc.collect()
 
     # ==========================
     # I2S BUS MANAGEMENT
@@ -105,28 +102,8 @@ class SpeakerBot:
     def update(self):
         """Main update loop - call frequently."""
         self.head.update()
-
-        # If doing chunked playback, advance it
-        if self._playback_gen:
-            try:
-                next(self._playback_gen)
-            except StopIteration:
-                self._playback_gen = None
-                self._finish_playback()
-
         self.display.update()
         led.update()
-
-    def _finish_playback(self):
-        """Called when chunked playback completes."""
-        # After playback, if streaming was active, switch back to mic
-        if self.streaming:
-            self._switch_to_mic()
-            self.display.show_listening()
-            led.status_listening()
-        else:
-            self.display.show_idle()
-            led.status_idle()
 
     # ==========================
     # HEAD COMMANDS
@@ -223,7 +200,6 @@ class SpeakerBot:
 
     def play_audio(self, wav_data):
         """Play a WAV file (blocking). Switches I2S to speaker mode."""
-        # Pause mic streaming if active
         was_streaming = self.streaming
 
         self.display.show_speaking()
@@ -235,7 +211,6 @@ class SpeakerBot:
         else:
             print("Speaker init failed!")
 
-        # Resume mic if was streaming
         if was_streaming:
             self._switch_to_mic()
             self.display.show_listening()
@@ -243,37 +218,6 @@ class SpeakerBot:
         else:
             self.display.show_idle()
             led.status_idle()
-
-    def play_audio_chunked(self, wav_data):
-        """Start non-blocking WAV playback. Switches I2S to speaker mode."""
-        self.display.show_speaking()
-        led.status_speaking()
-
-        if self._switch_to_speaker():
-            self._playback_gen = self.speaker.play_wav_chunked(wav_data)
-        else:
-            print("Speaker init failed, can't play!")
-            self.display.show_error("Spkr Error")
-            self.display.draw()
-
-    def begin_wav_receive(self):
-        """Start accumulating WAV data from network."""
-        self._wav_buffer = bytearray()
-        self._receiving_wav = True
-        self.display.show_thinking()
-        led.status_thinking()
-
-    def append_wav_data(self, chunk):
-        """Append a chunk of incoming WAV data."""
-        if self._receiving_wav:
-            self._wav_buffer.extend(chunk)
-
-    def finish_wav_receive(self):
-        """Finish receiving and start playback."""
-        self._receiving_wav = False
-        if self._wav_buffer:
-            self.play_audio_chunked(bytes(self._wav_buffer))
-            self._wav_buffer = bytearray()
 
     # ==========================
     # DIAGNOSTICS
